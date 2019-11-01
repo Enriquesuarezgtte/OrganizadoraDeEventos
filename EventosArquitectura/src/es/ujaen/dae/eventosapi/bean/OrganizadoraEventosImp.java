@@ -1,15 +1,11 @@
 package es.ujaen.dae.eventosapi.bean;
 
 import java.util.ArrayList;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.TreeMap;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
+import LlavePrivada.AES;
+import cifrado.Contexto;
 import es.ujaen.dae.eventosapi.dao.EventoDAO;
 import es.ujaen.dae.eventosapi.dao.UsuarioDAO;
 import es.ujaen.dae.eventosapi.dto.EventoDTO;
@@ -23,11 +19,8 @@ import es.ujaen.dae.eventosapi.modelo.Evento;
 import es.ujaen.dae.eventosapi.modelo.Usuario;
 import es.ujaen.dae.eventosapi.servicio.OrganizadoraEventosService;
 
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
-@Component
+
 public class OrganizadoraEventosImp implements OrganizadoraEventosService {
 
     String cif;
@@ -36,18 +29,17 @@ public class OrganizadoraEventosImp implements OrganizadoraEventosService {
     Map<String, Usuario> usuarios;
     Map<Integer, Evento> eventos;
 
-    @Autowired
+   
     EventoDAO eventoDAO;
 
-    @Autowired
     UsuarioDAO usuarioDAO;
 
-    @Autowired
-    public JavaMailSender emailSender;
 
     public OrganizadoraEventosImp() {
         usuarios = new TreeMap<>();
         eventos = new TreeMap<>();
+        eventoDAO = new EventoDAO();
+        usuarioDAO = new UsuarioDAO();
     }
 
     public String getCif() {
@@ -69,8 +61,10 @@ public class OrganizadoraEventosImp implements OrganizadoraEventosService {
     // DAO Listo
     public void registrarUsuario(UsuarioDTO usuarioDTO)throws CamposVaciosException{
         Usuario usuario = usuarioDTO.toEntity();
+        Contexto contexto = new Contexto(new AES());
         
-        usuario.setPassword(new BCryptPasswordEncoder().encode(usuario.getPassword()));
+        
+        usuario.setPassword(contexto.cifrar((usuario.getPassword())));
      // Valida campos vacios
         if (usuarioDTO.getDni() != null && !usuarioDTO.getDni().isEmpty() && usuarioDTO.getPassword() != null && !usuarioDTO.getPassword().isEmpty()
                 && usuarioDTO.getNombre() != null && !usuarioDTO.getNombre().isEmpty()) {
@@ -113,7 +107,7 @@ public class OrganizadoraEventosImp implements OrganizadoraEventosService {
     		throws InscripcionInvalidaException, FechaInvalidaException{
         Evento evento = null;
         Usuario usuario = null;
-        
+         
         evento = eventoDAO.buscar(id);
         usuario = usuarioDAO.buscar(dni);
         
@@ -154,13 +148,7 @@ public class OrganizadoraEventosImp implements OrganizadoraEventosService {
                 	Usuario usuarioEntra = usuarioDAO.buscar(datosListaEspera[1].toString());
                 	eventoDAO.sacarDeListaDeEspera(datosListaEspera, evento);
                 	eventoDAO.inscribirInvitado(evento, usuarioEntra);
-                	SimpleMailMessage mensaje = new SimpleMailMessage();
-                    mensaje.setTo(usuarioEntra.getCorreo());
-                    mensaje.setSubject("Has sido aceptado en un evento");
-                    String textoMensaje = "Enhorabuena! Has sido aceptado para la actividad " + evento.getNombre() + " a celebrar el día \n"
-                            + evento.getFecha() + " en " + evento.getLugar() + ". Entra en tu cuenta de Organizadora de Eventos para obtener más \n" + "información. ";
-                    mensaje.setText(textoMensaje);
-                    emailSender.send(mensaje);
+                	
                 }
                 eventoDAO.cancelarInvitado(evento, usuarioCancela);
                 
