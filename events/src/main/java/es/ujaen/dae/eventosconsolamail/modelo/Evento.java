@@ -19,19 +19,23 @@ import javax.persistence.ManyToMany;
 import javax.persistence.ManyToOne;
 import javax.persistence.Version;
 
+import es.ujaen.dae.eventosconsolamail.Observer.Observable;
+import es.ujaen.dae.eventosconsolamail.Observer.Observer;
+
 @Entity
-public class Evento implements Serializable {
+public class Evento implements Serializable, Observable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     int id;
-
+    private ArrayList<Observer> observers;
     String nombre;
     String descripcion;
     String lugar;
     String fecha;
     String tipo;
     int cupo;
+    Observer obs;
 
     @ManyToOne
     @JoinColumn(name = "organizador")
@@ -51,6 +55,7 @@ public class Evento implements Serializable {
     public Evento() {
         listaEspera = new TreeMap<>();
         listaInvitados = new ArrayList<>();
+        observers = new ArrayList<>();
     }
 
     public Evento(String nombre, String descripcion, String lugar, String fecha, String tipo, int cupo,
@@ -64,6 +69,7 @@ public class Evento implements Serializable {
         this.organizador = organizador;
         listaEspera = new TreeMap<>();
         listaInvitados = new ArrayList<>();
+        observers = new ArrayList<>();
     }
 
     public int getId() {
@@ -173,4 +179,29 @@ public class Evento implements Serializable {
         }
         return false;
     }
+
+	@Override
+	public void registerObserver(Observer observer) {
+		observers.add(observer);		
+	}
+
+	@Override
+	public void removeObserver(Observer observer) {
+		observers.remove(observer);
+	}
+
+	@Override
+	public void notifyObservers() {
+		for(Observer obse: observers) {
+			obse.update(this.obs, this.nombre);
+		}
+	}
+
+	@Override
+	public void cancelEvent() {
+    	notifyObservers();		
+	}
+
+
+	
 }

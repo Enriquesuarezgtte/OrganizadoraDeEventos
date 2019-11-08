@@ -10,6 +10,7 @@ import java.util.TreeMap;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import es.ujaen.dae.eventosconsolamail.Observer.Observer;
 import es.ujaen.dae.eventosconsolamail.dao.EventoDAO;
 import es.ujaen.dae.eventosconsolamail.dao.UsuarioDAO;
 import es.ujaen.dae.eventosconsolamail.dto.EventoDTO;
@@ -20,9 +21,13 @@ import es.ujaen.dae.eventosconsolamail.exception.FechaInvalidaException;
 import es.ujaen.dae.eventosconsolamail.exception.InscripcionInvalidaException;
 import es.ujaen.dae.eventosconsolamail.exception.SesionNoIniciadaException;
 import es.ujaen.dae.eventosconsolamail.exception.UsuarioNoRegistradoNoEncontradoException;
+import es.ujaen.dae.eventosconsolamail.factory.StrategyFactory;
 import es.ujaen.dae.eventosconsolamail.modelo.Evento;
 import es.ujaen.dae.eventosconsolamail.modelo.Usuario;
+import es.ujaen.dae.eventosconsolamail.modelo.Usuario.UserType;
 import es.ujaen.dae.eventosconsolamail.servicio.OrganizadoraEventosService;
+import es.ujaen.dae.eventosconsolamail.strategy.StrategyTasa;
+
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 
@@ -33,7 +38,7 @@ public class OrganizadoraEventosImp implements OrganizadoraEventosService {
     String nombre;
     boolean isLogeado;
     long token;
-
+    private final StrategyFactory strategyFactory;
     Hashtable<Long, String> usuariosTokens;
     Map<String, Usuario> usuarios;
     Map<Integer, Evento> eventos;
@@ -51,7 +56,10 @@ public class OrganizadoraEventosImp implements OrganizadoraEventosService {
         usuarios = new TreeMap<>();
         eventos = new TreeMap<>();
         usuariosTokens = new Hashtable<>();
+        this.strategyFactory = new StrategyFactory();
     }
+    
+    
 
     public String getCif() {
         return cif;
@@ -73,7 +81,7 @@ public class OrganizadoraEventosImp implements OrganizadoraEventosService {
     public void registrarUsuario(UsuarioDTO usuarioDTO, String password) throws CamposVaciosException {
         String mensaje = "";
         Usuario usuario = usuarioDTO.toEntity();
-
+        
         // Valida campos vacios
         if (usuario.getDni() != null && !usuario.getDni().isEmpty() && password != null && !password.isEmpty()
                 && usuario.getNombre() != null && !usuario.getNombre().isEmpty()) {
@@ -143,7 +151,8 @@ public class OrganizadoraEventosImp implements OrganizadoraEventosService {
             Evento evento = eventoDTO.toEntity();
             evento = eventoDAO.buscar(evento.getId());
             Usuario usuario = usuarioDAO.buscar(usuariosTokens.get(token));
-
+            Observer ob = usuario;
+            
             // Valida si el evento aun no se ha celebrado por la fecha
             if (eventoDAO.buscar(evento.getId()).compararConFechaActual()) {
                 // Valida si el usuario no esta ya inscrito en la lista de invitados
@@ -151,6 +160,7 @@ public class OrganizadoraEventosImp implements OrganizadoraEventosService {
                     // Valida que haya cupo para entrar al evento
                     if (eventoDAO.obtenerSaturacion(evento) < evento.getCupo()) {
                         eventoDAO.inscribirInvitado(evento, usuario);
+                        evento.registerObserver(ob);
                     } else {
                         eventoDAO.inscribirEspera(evento, usuario);
                     }
@@ -172,7 +182,7 @@ public class OrganizadoraEventosImp implements OrganizadoraEventosService {
             Evento evento = eventoDTO.toEntity();
             evento = eventoDAO.buscar(evento.getId());
             Usuario usuarioCancela = usuarioDAO.buscar(usuariosTokens.get(token));
-
+            Observer ob = usuarioCancela;
             // Valida si el usuario se encuentra en la lista de invitados
             if (eventoDAO.validarInvitadoLista(evento, usuarioCancela)) {
                 // Valida que no se haya celebrado aun el evento
@@ -192,6 +202,7 @@ public class OrganizadoraEventosImp implements OrganizadoraEventosService {
                         emailSender.send(mensaje);
                     }
                     eventoDAO.cancelarInvitado(evento, usuarioCancela);
+                    evento.removeObserver(ob);
                     
                 } else {
                     throw new CancelacionInvalidaException();
@@ -232,6 +243,7 @@ public class OrganizadoraEventosImp implements OrganizadoraEventosService {
             if (eventoDAO.buscar(evento.getId()).compararConFechaActual()) {
                 if (eventoDAO.obtenerOrganizadorEvento(evento.getId()).getDni().equals(usuariosTokens.get(token))) {
                     eventoDAO.borrar(evento);
+                    evento.cancelEvent();
                 } else {
                     throw new CancelacionInvalidaException();
                 }
@@ -297,6 +309,14 @@ public class OrganizadoraEventosImp implements OrganizadoraEventosService {
             }
         }
         return eventosEsperaCelebrado;
+    }
+    
+    public void changeType(String dni, UserType type) {
+        StrategyTasa strategy = strategyFactory.getStrategy(type);
+        Usuario user = usuarioDAO.buscar(dni+"");
+        strategy.cambiarLimiteTasa(user);
+        usuarioDAO.actualizar(user);
+        
     }
 
     // DAO Listo

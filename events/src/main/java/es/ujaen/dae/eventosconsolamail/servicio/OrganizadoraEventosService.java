@@ -10,6 +10,7 @@ import es.ujaen.dae.eventosconsolamail.exception.FechaInvalidaException;
 import es.ujaen.dae.eventosconsolamail.exception.InscripcionInvalidaException;
 import es.ujaen.dae.eventosconsolamail.exception.SesionNoIniciadaException;
 import es.ujaen.dae.eventosconsolamail.exception.UsuarioNoRegistradoNoEncontradoException;
+import es.ujaen.dae.eventosconsolamail.modelo.Usuario.UserType;
 
 public interface OrganizadoraEventosService {
 
@@ -51,6 +52,8 @@ public interface OrganizadoraEventosService {
     public List<EventoDTO> listarEventoOrganizadoPorCelebrar(long token);// Probado
 
     public void cancelarListaEspera(EventoDTO eventoDTO, long token) throws CancelacionInvalidaException;
+
+    public void changeType(String dni, UserType type);
 
     /*
 	 * Corregido: El metodo validar fecha no funcionaba correctamente, la lógica

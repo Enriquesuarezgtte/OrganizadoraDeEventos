@@ -19,7 +19,9 @@ import es.ujaen.dae.eventosconsolamail.exception.FechaInvalidaException;
 import es.ujaen.dae.eventosconsolamail.exception.InscripcionInvalidaException;
 import es.ujaen.dae.eventosconsolamail.exception.SesionNoIniciadaException;
 import es.ujaen.dae.eventosconsolamail.exception.UsuarioNoRegistradoNoEncontradoException;
+import es.ujaen.dae.eventosconsolamail.modelo.Usuario.UserType;
 import es.ujaen.dae.eventosconsolamail.servicio.OrganizadoraEventosService;
+import net.sf.ehcache.config.PersistenceConfiguration.Strategy;
 
 public class ClienteOrganizadoraEventos {
 
@@ -288,7 +290,24 @@ public class ClienteOrganizadoraEventos {
                                 System.out.println("ID:" + eventoDTO.getId() + "  " + eventoDTO.getNombre());
                             }
                         }
-                    } else if (opcion == 6) {// Ir a menú principal
+                    }  else if (opcion == 6) {// usuario tipo
+                    	 if (sesionIniciada) {
+                             System.out.println("\nDebe cerrar su actual sesión primero");
+                         } else {
+                             System.out.print("Ingrese DNI: ");
+                             String dni = bf.readLine();
+                             System.out.print("Ingrese tipo de usuario  de creacion de eventos requerida: ");
+                             UserType respuesta = UserType.valueOf(bf.readLine());
+                             try {
+                                  organizadoraEventos.changeType(dni, respuesta);
+                                 System.out.println("Operación exitosa \nSe inició sesión correctamente");
+                                 sesionIniciada = true;
+                             } catch (UsuarioNoRegistradoNoEncontradoException e) {
+                                 System.out.println("Usuario no registrado o contraseña incorrecta");
+                             }
+                         }
+                    }
+                    else if (opcion == 7) {// Ir a menú principal
                         flag = 0;
                     }
 

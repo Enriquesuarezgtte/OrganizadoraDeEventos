@@ -10,8 +10,10 @@ import javax.persistence.ManyToMany;
 import javax.persistence.OneToMany;
 import javax.persistence.Version;
 
+import es.ujaen.dae.eventosconsolamail.Observer.Observer;
+
 @Entity
-public class Usuario implements Serializable {
+public class Usuario implements Serializable, Observer{
 
     @Id
     String dni;
@@ -141,5 +143,14 @@ public class Usuario implements Serializable {
                 + ", password=" + password + ", eventosOrganizados=" + eventosOrganizados + ", eventosEspera="
                 + eventosEspera + ", eventosInvitado=" + eventosInvitado + "]";
     }
+
+	@Override
+	public String update(Observer observer, String name) {
+		if(observer.toString().equals(nombre)) {
+			return "Hola" + nombre + ", el evento "+ name+
+					"se ha cancelado.";
+		}
+		return "";
+	}
 
 }

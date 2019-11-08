@@ -71,6 +71,7 @@ public class EventoDAO {
     // Borrar evento
     public void borrar(Evento evento) {
         em.remove(em.merge(evento));
+       
     }
 
     // Inscribir lista invitado
